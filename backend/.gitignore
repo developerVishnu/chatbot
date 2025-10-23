@@ -1,0 +1,12 @@
+# Node dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Build / Compiled files
+dist/
+
+# Drizzle ORM generated files (if using drizzle-kit)
+drizzle/
+drizzle.config.ts
