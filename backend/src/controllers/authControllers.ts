@@ -10,10 +10,7 @@ export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   try {
-    const validate = v.safeParse(loginSchema, {
-      email,
-      password,
-    });
+    const validate = v.safeParse(loginSchema, { email, password });
 
     if (!validate.success) {
       return res.status(400).json({
@@ -22,40 +19,34 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const getUser = await db
-      .select({
-        password: userTable.password,
-      })
+    const user = await db
+      .select({ password: userTable.password })
       .from(userTable)
       .where(eq(userTable.email, email));
 
-    console.log("getUser", getUser);
-
-    if (getUser.length === 0) {
-      return res.status(400).json({
+    if (!user.length) {
+      return res.status(404).json({
         success: false,
-        message: `${email} User does not exist`,
+        message: `${email} user does not exist`,
       });
     }
-    const comparePassword = await bcrypt.compare(
-      password,
-      getUser[0]?.password
-    );
 
-    if (comparePassword) {
-      res.status(200).json({
-        success: true,
-        message: "User login successfully",
-      });
-    } else {
+    const isPasswordCorrect = await bcrypt.compare(password, user[0].password);
+
+    if (!isPasswordCorrect) {
       return res.status(400).json({
         success: false,
-        message: `Password Incorrect`,
+        message: "Incorrect password",
       });
     }
+
+    return res.status(200).json({
+      success: true,
+      message: "User logged in successfully",
+    });
   } catch (err) {
-    console.log("err", err);
-    res.status(500).json({
+    console.error("Login Error:", err);
+    return res.status(500).json({
       success: false,
       message: "Something went wrong",
     });
@@ -80,38 +71,38 @@ export const signUp = async (req: Request, res: Response) => {
       });
     }
 
-    const getUser = await db
+    const existingUser = await db
       .select()
       .from(userTable)
       .where(eq(userTable.email, email));
 
-    if (getUser.length !== 0) {
+    if (existingUser.length) {
       return res.status(400).json({
         success: false,
-        message: `${email} User already exist`,
+        message: `${email} user already exists`,
       });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const response = await db
+    const [createdUser] = await db
       .insert(userTable)
       .values({
         name,
         email,
-        password: passwordHash,
+        password: hashedPassword,
         username,
       })
       .returning({ id: userTable.id });
 
-    res.status(200).json({
+    return res.status(201).json({
       success: true,
-      message: "User registerd successfully",
-      data: response[0],
+      message: "User registered successfully",
+      data: createdUser,
     });
   } catch (err) {
-    console.log("err", err);
-    res.status(500).json({
+    console.error("SignUp Error:", err);
+    return res.status(500).json({
       success: false,
       message: "Something went wrong",
     });
