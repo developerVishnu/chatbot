@@ -5,6 +5,8 @@ import bcrypt from "bcrypt";
 import { loginSchema, signUpSchema } from "../schema/schema.js";
 import * as v from "valibot";
 import { eq } from "drizzle-orm";
+import { sendResponse } from "../utills/sendResponse.js";
+import { HttpStatusCode } from "../utills/statusCode.js";
 
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -13,8 +15,8 @@ export const login = async (req: Request, res: Response) => {
     const validate = v.safeParse(loginSchema, { email, password });
 
     if (!validate.success) {
-      return res.status(400).json({
-        success: false,
+      return sendResponse(res, {
+        code: HttpStatusCode.NOT_FOUND,
         message: validate.issues.map((item) => item.message),
       });
     }
@@ -25,30 +27,27 @@ export const login = async (req: Request, res: Response) => {
       .where(eq(userTable.email, email));
 
     if (!user.length) {
-      return res.status(404).json({
-        success: false,
-        message: `${email} user does not exist`,
+      return sendResponse(res, {
+        code: HttpStatusCode.NOT_FOUND,
       });
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, user[0].password);
 
     if (!isPasswordCorrect) {
-      return res.status(400).json({
-        success: false,
-        message: "Incorrect password",
+      return sendResponse(res, {
+        code: HttpStatusCode.NOT_FOUND,
       });
     }
 
-    return res.status(200).json({
-      success: true,
+    return sendResponse(res, {
+      code: HttpStatusCode.OK,
       message: "User logged in successfully",
     });
   } catch (err) {
-    console.error("Login Error:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong",
+    return sendResponse(res, {
+      code: HttpStatusCode.BAD_REQUEST,
+      message: err,
     });
   }
 };
@@ -65,8 +64,8 @@ export const signUp = async (req: Request, res: Response) => {
     });
 
     if (!validate.success) {
-      return res.status(400).json({
-        success: false,
+      return sendResponse(res, {
+        code: HttpStatusCode.NOT_FOUND,
         message: validate.issues.map((item) => item.message),
       });
     }
@@ -77,9 +76,8 @@ export const signUp = async (req: Request, res: Response) => {
       .where(eq(userTable.email, email));
 
     if (existingUser.length) {
-      return res.status(400).json({
-        success: false,
-        message: `${email} user already exists`,
+      return sendResponse(res, {
+        code: HttpStatusCode.NOT_FOUND,
       });
     }
 
@@ -95,16 +93,16 @@ export const signUp = async (req: Request, res: Response) => {
       })
       .returning({ id: userTable.id });
 
-    return res.status(201).json({
-      success: true,
+    return sendResponse(res, {
+      code: HttpStatusCode.CREATED,
       message: "User registered successfully",
       data: createdUser,
     });
   } catch (err) {
     console.error("SignUp Error:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong",
+    return sendResponse(res, {
+      code: HttpStatusCode.BAD_REQUEST,
+      message: err,
     });
   }
 };
