@@ -299,3 +299,664 @@ Files prefixed with `demo` can be safely deleted. They are there to provide a st
 # Learn More
 
 You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
+export const validateShipmentData = (shipmentDetailsELC: any) => {
+  const errorMsg:any=[];
+  const partialShipment = shipmentDetailsELC?.partialShipment?.value || shipmentDetailsELC?.partialShipment;
+  if (!partialShipment) {
+    errorMsg.push({ "section": "Shipment Details", "field": "Partial Shipment", "errorDescription": "Partial Shipment is mandatory" });
+  }
+  const transhipment = shipmentDetailsELC?.transhipment?.value || shipmentDetailsELC?.transhipment;
+  if (!transhipment) {
+    errorMsg.push({ "section": "Shipment Details", "field": "Transhipment", "errorDescription": "Transhipment is mandatory" });
+  }
+  const periodForPresentationInDays = shipmentDetailsELC?.periodForPresentationInDays?.value || shipmentDetailsELC?.periodForPresentationInDays;
+  if (!periodForPresentationInDays) {
+    errorMsg.push({ "section": "Shipment Details", "field": "Period for Presentation in Days", "errorDescription": "Period for Presentation in Days is mandatory" });
+  }
+  if (Number.isNaN(Number(periodForPresentationInDays))) {
+    errorMsg.push({ "section": "Shipment Details", "field": "Period for Presentation in Days", "errorDescription": "Period for Presentation in Days value has invalid Character" })
+  }
+  if (!Number.isNaN(Number(periodForPresentationInDays)) && (Number(periodForPresentationInDays) < 0 || Number(periodForPresentationInDays) > 999)) {
+    errorMsg.push({ "section": "Shipment Details", "field": "Period for Presentation in Days", "errorDescription": "Period for Presentation in Days most not have more than 3 characters" })
+  } else if (!Number.isInteger(Number(periodForPresentationInDays))) {
+    errorMsg.push({ "section": "Shipment Details", "field": "Period for Presentation in Days", "errorDescription": "Period for Presentation in Days value has invalid Character" })
+  }
+  const incotermYear = shipmentDetailsELC?.incotermYear?.value || shipmentDetailsELC?.incotermYear;
+  if (!incotermYear) {
+    errorMsg.push({ "section": "Shipment Details", "field": "incotermYear", "errorDescription": "incotermYear is mandatory" });
+  }
+  const modeOfShipment = shipmentDetailsELC?.modeOfShipment?.value || shipmentDetailsELC?.modeOfShipment;
+  if (!modeOfShipment) {
+    errorMsg.push({ "section": "Shipment Details", "field": "modeOfShipment", "errorDescription": "modeOfShipment is mandatory" });
+  }
+  return errorMsg;
+}
+import { LOCVariable } from '@components/TransactionWorkDeskDetails/screens/LetterOfCreditDetails/service';
+import { get } from 'lodash';
+
+const patternX = "^[a-zA-Z0-9/?:().'+,\r\n -]+$";
+const patternZ = '^[A-Za-z0-9.,()/=\'+:?!"%&*<>;{@#_\r\n -]*$';
+const validatePatternX = new RegExp(patternX);
+const validatePatternZ = new RegExp(patternZ);
+
+export const validation = (payload) => {
+  const errors = [];
+  const customPayload = {
+    isBeneficiaryChangedReq: false,
+    step: 'new',
+  };
+  for (const rule of validationRules) {
+    if (rule.setp && !rule.setp.includes(customPayload.step)) {
+      continue;
+    }
+    const value = get(payload, rule.path);
+    if (rule?.customValidator) {
+      const customValidator = rule?.customValidator(value, payload, customPayload);
+      if (customValidator) {
+        errors.push({
+          section: rule.section,
+          field: rule.field ? rule.field : LOCVariable[rule.path],
+          errorDescription:
+            typeof customValidator === 'boolean'
+              ? `${rule.field ? rule.field : LOCVariable[rule.path]} is mandatory`
+              : customValidator,
+        });
+      }
+    }
+    if (rule.required) {
+      if (value === null || value === undefined || value === '') {
+        errors.push({
+          section: rule.section,
+          field: rule.field ? rule.field : LOCVariable[rule.path],
+          errorDescription: `${rule.field ? rule.field : LOCVariable[rule.path]} is mandatory`,
+        });
+      }
+    }
+  }
+
+  return errors;
+};
+
+interface IInterfaceCustomPayload {
+  isBeneficiaryChangedReq: boolean;
+}
+
+interface IValidationRules {
+  path: string;
+  required?: boolean;
+  internalName?: string;
+  section: string;
+  field?: string;
+  setp?: string[]; // Validate only on this steps if null or undefined validate on all steps
+  // Need to return error message or null if valid
+  customValidator?: (value: any, payload: any, customPayload: IInterfaceCustomPayload) => string | null | boolean;
+}
+
+export const validationRules: IValidationRules[] = [
+  // ***** letter Of Credit Header Details ILC ***** //
+  {
+    path: 'letterOfCreditHeaderDetailsILC.letterOfCreditType',
+    required: true,
+    internalName: 'letterOfCreditType',
+    section: 'Letter of Credit Details',
+    field: 'letter Of Credit Type',
+  },
+  {
+    path: 'letterOfCreditHeaderDetailsILC.letterOfCreditbeneficiary',
+    required: true,
+    internalName: 'letterOfCreditbeneficiary',
+    section: 'Letter of Credit Details',
+    field: 'letter Of Credit beneficiary',
+  },
+  {
+    path: 'letterOfCreditHeaderDetailsILC.letterOfCreditAmount.currency.value',
+    required: true,
+    internalName: 'letterOfCreditAmount',
+    section: 'Letter of Credit Details',
+    field: 'letter Of Credit Amount',
+  },
+  {
+    path: 'letterOfCreditHeaderDetailsILC.expiryDate',
+    required: true,
+    internalName: 'expiryDate',
+    section: 'Letter of Credit Details',
+    field: 'Expiry Date',
+  },
+
+  // ***** Amendment Details ***** //
+  {
+    path: 'amendmentDetails.numberOfAmendment.value',
+    required: true,
+    section: 'Amendment Data',
+    setp: ['amd'],
+  },
+  {
+    path: 'amendmentDetails.purposeOfMessage.value',
+    required: true,
+    section: 'Amendment Data',
+    setp: ['amd'],
+  },
+  {
+    path: 'amendmentDetails.dateOfAmendment.value',
+    required: true,
+    section: 'Amendment Data',
+    setp: ['amd'],
+  },
+  {
+    path: 'amendmentDetails.natureOfBeneficiaryChange.value',
+    section: 'Amendment Data',
+    setp: ['amd'],
+    customValidator: (value, _, customPayload) => {
+      return customPayload?.isBeneficiaryChangedReq ? (value ? null : true) : null;
+    },
+  },
+  {
+    path: 'amendmentDetails',
+    section: 'Amendment Data',
+    field: 'Increase in Amount/ Decrease in Amount',
+    setp: ['amd'],
+    customValidator: (value) => {
+      const isAmount =
+        get(value, 'increaseInAmount.currency.value') &&
+        get(value, 'increaseInAmount.formattedValue.value') &&
+        get(value, 'decreaseInAmount.currency.value') &&
+        get(value, 'decreaseInAmount.formattedValue.value');
+      return isAmount ? 'Please fill only one field: either Increase or Decrease, but not both' : null;
+    },
+  },
+
+  // ***** Internal Data ***** //
+  {
+    path: 'internalDataDetailsILC.letterOfCreditType.value',
+    required: true,
+    section: 'Internal Data',
+  },
+  {
+    path: 'internalDataDetailsILC.ourLEID.value',
+    required: true,
+    section: 'Internal Data',
+  },
+  {
+    path: 'internalDataDetailsILC.letterOfCreditNumber.value',
+    required: true,
+    section: 'Internal Data',
+  },
+  {
+    path: 'internalDataDetailsILC.deliveryMode.value',
+    required: true,
+    section: 'Internal Data',
+  },
+
+  // ***** General LC Details ***** //
+  {
+    path: 'generalILCDetails.draftDraweeDetailsMolecule.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.draftDrawnOnDrawee?.value == 'OTHR' ? true : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.availableWithBankDetails.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.availableWith?.value == 'OTHR' ? true : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.usanceTenorInDays.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.tenorType?.value == 'OTHR' ||
+        payload?.generalILCDetails?.availableBy?.value == 'BACP' ||
+        payload?.generalILCDetails?.availableBy?.value == 'BDEF'
+        ? true
+        : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.usancePeriod.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.tenorType?.value == 'USAN' ||
+        payload?.generalILCDetails?.availableBy?.value == 'BACP' ||
+        payload?.generalILCDetails?.availableBy?.value == 'BDEF'
+        ? true
+        : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.mixedPaymentDetails.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.tenorType?.value == 'MIXD' ||
+        payload?.generalILCDetails?.availableBy?.value == 'BMXP'
+        ? true
+        : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.applicableRulesNarrative.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.applicableRules?.value === 'OTHR' ? true : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.usancePeriodOthers.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.usancePeriod?.value === 'OTHR' ? true : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.letterOfCreditExpiryPlaceOthers.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.letterOfCreditExpiryPlace?.value === 'OTHR' ? true : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.additionalAmounts.currency.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return (Array.isArray(payload?.generalILCDetails?.additionalAmountCovered) &&
+        payload?.generalILCDetails?.additionalAmountCovered?.[0]) ||
+        payload?.additionalAmountCovered?.value
+        ? true
+        : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.additionalAmountCovered.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.additionalAmounts?.formattedValue?.value ? true : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.ttReimbursementAllowed.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.reimbursementInstruction?.value === 'ALLD' ? true : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.claimValueDays.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.ttReimbursementAllowed?.value ? true : null;
+    },
+  },
+  {
+    path: 'generalILCDetails.letterOfCreditExpiryPlaceOthers.value',
+    section: 'General LC Details',
+    required: true,
+  },
+  {
+    path: 'generalILCDetails.letterOfCreditExpiryDate.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      const today = new Date();
+      const minDate = today.toISOString().split('T')[0];
+      return payload?.generalILCDetails?.letterOfCreditExpiryDate?.value < minDate
+        ? 'The LC expiry date must be later than current system date'
+        : null;
+    },
+  },
+  {
+    path: 'generalILCDetails?.letterOfCreditAmount?.formattedValue?.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.letterOfCreditAmount?.currency?.value &&
+        payload?.generalILCDetails?.letterOfCreditAmount?.formattedValue?.value
+        ? null
+        : `${
+            payload?.generalILCDetails?.letterOfCreditAmount?.currency?.value ? 'Amount' : 'Currency'
+          } field cannot be empty when the currency is selected`;
+    },
+  },
+  {
+    path: 'generalILCDetails?.additionalAmounts?.formattedValue?.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return payload?.generalILCDetails?.letterOfCreditAmount?.currency?.value &&
+        payload?.generalILCDetails?.letterOfCreditAmount?.formattedValue?.value
+        ? payload?.generalILCDetails?.letterOfCreditAmount?.currency?.value !=
+          payload?.generalILCDetails?.additionalAmounts?.currency?.value
+          ? 'Currency Mismatch with the Original LC amount'
+          : null
+        : `${
+            payload?.generalILCDetails?.letterOfCreditAmount?.currency?.value ? 'Amount' : 'Currency'
+          } field cannot be empty when the currency is selected`;
+    },
+  },
+  // TODO: showError, showlcAmountError
+  {
+    path: 'generalILCDetails?.commodityTolerancePercentage?.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return !payload?.generalILCDetails?.positiveTolerance?.value &&
+        payload?.generalILCDetails?.commodityToleranceApplicablity?.value &&
+        !payload?.generalILCDetails?.commodityTolerancePercentage?.value
+        ? 'Since Commodity Tolerance Applicability is set to "yes" and there is no Positive Tolerance, Commodity Tolerance cannot be left empty'
+        : null;
+    },
+  },
+  {
+    path: 'generalILCDetails?.availableWithBICCode?.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return !payload?.generalILCDetails?.availableWithBICCode?.value &&
+        !payload?.generalILCDetails?.availableWith?.value
+        ? 'Input Available With-BIC or Available With-Free Text'
+        : null;
+    },
+  },
+  {
+    path: 'generalILCDetails?.availableWith?.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return !payload?.generalILCDetails?.availableWithBICCode?.value &&
+        !payload?.generalILCDetails?.availableWith?.value
+        ? 'Input Available With-BIC or Available With-Free Text'
+        : null;
+    },
+  },
+  {
+    path: 'generalILCDetails?.draftDrawnOnDraweeBICCode?.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return !!payload?.generalILCDetails?.draftRequired?.value &&
+        !payload?.generalILCDetails?.draftDrawnOnDraweeBICCode?.value &&
+        !payload?.generalILCDetails?.draftDrawnOnDrawee?.value
+        ? 'Input Draft Drawn on Drawee-BIC or Draft Drawn on Drawee-Free Text'
+        : null;
+    },
+  },
+  {
+    path: 'generalILCDetails?.draftDrawnOnDrawee?.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      return !!payload?.generalILCDetails?.draftRequired?.value &&
+        !payload?.generalILCDetails?.draftDrawnOnDraweeBICCode?.value &&
+        !payload?.generalILCDetails?.draftDrawnOnDrawee?.value
+        ? 'Input Draft Drawn on Drawee-BIC or Draft Drawn on Drawee-Free Text'
+        : null;
+    },
+  },
+  // TODO:draftAtNegotiationError
+
+  // **** Document Required **** //
+  {
+    path: 'documentsRequiredILC?.letterOfIndemnityandWarrantyOfTitle?.value',
+    section: 'General LC Details',
+    required: true,
+  },
+  {
+    path: 'documentsRequiredILC?.overrideDocumentsRequired?.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      let data =
+        payload?.documentsRequiredILC?.overrideDocumentsRequired?.value ||
+        payload?.documentsRequiredILC?.overrideDocumentsRequired;
+      return typeof data !== 'object' && !validatePatternZ.test(data)
+        ? 'Documents Required must not contain invalid character'
+        : null;
+    },
+  },
+
+  {
+    path: 'goodsDescriptionELC?.overrideGoodsDescription?.value',
+    section: 'General LC Details',
+    customValidator: (value, payload) => {
+      let data =
+        payload?.goodsDescriptionELC?.overrideGoodsDescription?.value ||
+        payload?.goodsDescriptionELC?.overrideGoodsDescription;
+      return typeof data !== 'object' && !validatePatternZ.test(data)
+        ? 'Goods Description must not contain invalid character'
+        : null;
+    },
+  },
+
+  // **** Other Terms and Condition **** //
+
+  {
+    path: 'otherTermsAndConditionsILC?.chargesBorneBy?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const clinentSpecifiedCharges = payload?.otherTermsAndConditionsILC?.clientSpecifiedCharges?.value;
+      const confirmationInstructions = payload?.generalILCDetails?.confirmationInstructions?.value;
+      return ['OTHR', 'ACOA', 'ACOB', 'ACAA', 'ACBB', 'DCIR'].includes(clinentSpecifiedCharges) ||
+        (clinentSpecifiedCharges === 'ACOA' &&
+          (confirmationInstructions === 'WOUT' || confirmationInstructions === 'MADD'))
+        ? null
+        : !!value;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.chargesNarrative?.value',
+    section: 'Other Terms & Cond.',
+    required: true,
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.advisingCharges?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const clinentSpecifiedCharges = payload?.otherTermsAndConditionsILC?.clientSpecifiedCharges?.value;
+      const confirmationInstructions = payload?.generalILCDetails?.confirmationInstructions?.value;
+      return clinentSpecifiedCharges === 'ACOA' &&
+        (confirmationInstructions === 'WOUT' || confirmationInstructions === 'MADD')
+        ? null
+        : !!value;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.reimbursementAndRemittanceCharges?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const clinentSpecifiedCharges = payload?.otherTermsAndConditionsILC?.clientSpecifiedCharges?.value;
+      const confirmationInstructions = payload?.generalILCDetails?.confirmationInstructions?.value;
+      return (clinentSpecifiedCharges === 'ACOA' &&
+        (confirmationInstructions === 'WOUT' || confirmationInstructions === 'MADD')) ||
+        clinentSpecifiedCharges === 'ACIC' ||
+        confirmationInstructions === 'WOUT' ||
+        confirmationInstructions === 'MADD'
+        ? null
+        : !!value;
+    },
+  },
+
+  {
+    path: 'otherTermsAndConditionsILC?.reimbursementAndRemittanceCharges?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const clinentSpecifiedCharges = payload?.otherTermsAndConditionsILC?.clientSpecifiedCharges?.value;
+      const confirmationInstructions = payload?.generalILCDetails?.confirmationInstructions?.value;
+      const reimbursementIntruction = payload?.generalILCDetails?.reimbursementInstruction?.value;
+      return (clinentSpecifiedCharges === 'ACOA' &&
+        (confirmationInstructions === 'WOUT' || confirmationInstructions === 'MADD')) ||
+        clinentSpecifiedCharges === 'ACIC' ||
+        reimbursementIntruction === 'ALLD'
+        ? null
+        : !!value;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.discrepancyCharges?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const clinentSpecifiedCharges = payload?.otherTermsAndConditionsILC?.clientSpecifiedCharges?.value;
+      const confirmationInstructions = payload?.generalILCDetails?.confirmationInstructions?.value;
+      return (clinentSpecifiedCharges === 'ACOA' &&
+        (confirmationInstructions === 'WOUT' || confirmationInstructions === 'MADD')) ||
+        clinentSpecifiedCharges === 'ACIC'
+        ? null
+        : !!value;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.reimbursingBankCharges?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const clinentSpecifiedCharges = payload?.otherTermsAndConditionsILC?.clientSpecifiedCharges?.value;
+      const confirmationInstructions = payload?.generalILCDetails?.confirmationInstructions?.value;
+      const reimbursementIntruction = payload?.generalILCDetails?.reimbursementInstruction?.value;
+      return (clinentSpecifiedCharges === 'ACOA' &&
+        (confirmationInstructions === 'WOUT' || confirmationInstructions === 'MADD')) ||
+        clinentSpecifiedCharges === 'ACIC' ||
+        reimbursementIntruction === 'NALD'
+        ? null
+        : !!value;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.issuanceCharges?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const clinentSpecifiedCharges = payload?.otherTermsAndConditionsILC?.clientSpecifiedCharges?.value;
+      const confirmationInstructions = payload?.generalILCDetails?.confirmationInstructions?.value;
+      return clinentSpecifiedCharges === 'ACOA' &&
+        (confirmationInstructions === 'WOUT' || confirmationInstructions === 'MADD')
+        ? null
+        : !!value;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.interestTenorBorneByApplicant?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      return payload?.otherTermsAndConditionsILC?.discountingInterest?.value === 'SPLT' ? !!value : null;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.interestTenorBorneByBeneficiary?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      return payload?.otherTermsAndConditionsILC?.discountingInterest?.value === 'SPLT' ? !!value : null;
+    },
+  },
+
+  {
+    path: 'otherTermsAndConditionsILC?.additionalConditions?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const additionalConditions =
+        payload?.otherTermsAndConditionsILC?.additionalConditions?.value ||
+        payload?.otherTermsAndConditionsILC?.additionalConditions;
+
+      return typeof additionalConditions !== 'object' && !validatePatternZ.test(additionalConditions)
+        ? 'Additional Conditions not contain invalid character'
+        : null;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.letterOfCreditCharges?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const letterOfCreditCharges =
+        payload?.otherTermsAndConditionsILC?.letterOfCreditCharges?.value ||
+        payload?.otherTermsAndConditionsILC?.letterOfCreditCharges;
+
+      return typeof letterOfCreditCharges !== 'object' && !validatePatternZ.test(letterOfCreditCharges)
+        ? 'Letter of Credit Charges not contain invalid character'
+        : null;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.interestTenorBorneByApplicant?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const isValidate =
+        !Number.isNaN(Number(payload?.otherTermsAndConditionsILC?.interestTenorBorneByApplicant?.value)) &&
+        (Number(payload?.otherTermsAndConditionsILC?.interestTenorBorneByApplicant?.value) < 0 ||
+          Number(payload?.otherTermsAndConditionsILC?.interestTenorBorneByApplicant?.value) > 999);
+
+      return isValidate ? 'Interest Tenor Borne by Applicant (Days) value should be between 0 & 999' : null;
+    },
+  },
+  {
+    path: 'otherTermsAndConditionsILC?.interestTenorBorneByBeneficiary?.value',
+    section: 'Other Terms & Cond.',
+    customValidator: (value, payload) => {
+      const isValidate =
+        !Number.isNaN(Number(payload?.otherTermsAndConditionsILC?.interestTenorBorneByBeneficiary?.value)) &&
+        (Number(payload?.otherTermsAndConditionsILC?.interestTenorBorneByBeneficiary?.value) < 0 ||
+          Number(payload?.otherTermsAndConditionsILC?.interestTenorBorneByBeneficiary?.value) > 999);
+
+      return isValidate ? 'Interest Tenor Borne by Beneficiary (Days) value should be between 0 & 999' : null;
+    },
+  },
+
+  // *** Bank Instruction *** /
+  {
+    path: 'bankInstructionsILC?.specialPaymentConditionsForBeneficiary?.value',
+    section: 'Bank Instructions',
+    customValidator: (value, payload) => {
+      const specialPaymentConditionsForBeneficiary =
+        payload?.bankInstructionsILC?.specialPaymentConditionsForBeneficiary?.value ||
+        payload?.bankInstructionsILC?.specialPaymentConditionsForBeneficiary;
+
+      return typeof specialPaymentConditionsForBeneficiary !== 'object' &&
+        !validatePatternZ.test(specialPaymentConditionsForBeneficiary)
+        ? 'Special Payment Conditions for Beneficiary not contain invalid character'
+        : null;
+    },
+  },
+  {
+    path: 'bankInstructionsILC?.overrideSpecialPaymentConditionsForBankOnly?.value',
+    section: 'Bank Instructions',
+    customValidator: (value, payload) => {
+      const overrideSpecialPaymentConditionsForBankOnly =
+        payload?.bankInstructionsILC?.overrideSpecialPaymentConditionsForBankOnly?.value ||
+        payload?.bankInstructionsILC?.overrideSpecialPaymentConditionsForBankOnly;
+
+      return typeof overrideSpecialPaymentConditionsForBankOnly !== 'object' &&
+        !validatePatternZ.test(overrideSpecialPaymentConditionsForBankOnly)
+        ? 'Override Special Payment Conditions not contain invalid character'
+        : null;
+    },
+  },
+  {
+    path: 'bankInstructionsILC?.instructionsToThePayingAndAcceptingAndNegotiatingBank?.value',
+    section: 'Bank Instructions',
+    customValidator: (value, payload) => {
+      const instructionsToThePayingAndAcceptingAndNegotiatingBank =
+        payload?.bankInstructionsILC?.instructionsToThePayingAndAcceptingAndNegotiatingBank?.value ||
+        payload?.bankInstructionsILC?.instructionsToThePayingAndAcceptingAndNegotiatingBank;
+
+      return typeof instructionsToThePayingAndAcceptingAndNegotiatingBank !== 'object' &&
+        !validatePatternX.test(instructionsToThePayingAndAcceptingAndNegotiatingBank)
+        ? 'Instructions to the Paying/Accepting/Negotiating Bank not contain invalid character'
+        : null;
+    },
+  },
+  {
+    path: 'bankInstructionsILC?.senderToReceiverInformation?.value',
+    section: 'Bank Instructions',
+    customValidator: (value, payload) => {
+      const senderToReceiverInformation =
+        payload?.bankInstructionsILC?.senderToReceiverInformation?.value ||
+        payload?.bankInstructionsILC?.senderToReceiverInformation;
+
+      return typeof senderToReceiverInformation !== 'object' && !validatePatternZ.test(senderToReceiverInformation)
+        ? 'Sender to Receiver Information not contain invalid character'
+        : null;
+    },
+  },
+
+  // *** Shipment Data *** //
+  
+];
+export const validateDocumentRequired = (documentsRequiredData: any) => {
+  const errorMsg:any=[];
+  const documentsRequired = documentsRequiredData?.overrideDocumentsRequired?.value || documentsRequiredData?.overrideDocumentsRequired;
+  if(documentsRequiredData?.letterOfIndemnityAndWarrantyOfTitle?.value === "undefined" ||
+    documentsRequiredData?.letterOfIndemnityAndWarrantyOfTitle?.value === ""
+  ){
+    errorMsg.push({ "section": "Documents Required.", "field": "letterOfIndemnityAndWarrantyOfTitle", "errorDescription": "letterOfIndemnityAndWarrantyOfTitle" });
+  }
+  if (typeof documentsRequired !== "object" && !validatePatternZ.test(documentsRequired)) {
+    errorMsg.push({ "section": "Documents Required", "field": "Documents Required", "errorDescription": "Documents Required must not contain invalid character" });
+  }
+  return errorMsg;
+}
