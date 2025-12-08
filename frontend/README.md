@@ -1,3 +1,62 @@
+export const shipmentDetailsValidationRules = [
+  {
+    path: 'shipmentDetailsELC.partialShipment.value',
+    section: 'Shipment Details',
+    required: true,
+    field: 'Partial Shipment',
+    errorDescription: 'Partial Shipment is mandatory',
+  },
+  {
+    path: 'shipmentDetailsELC.transhipment.value',
+    section: 'Shipment Details',
+    required: true,
+    field: 'Transhipment',
+    errorDescription: 'Transhipment is mandatory',
+  },
+  {
+    path: 'shipmentDetailsELC.periodForPresentationInDays.value',
+    section: 'Shipment Details',
+    required: true,
+    field: 'Period for Presentation in Days',
+    errorDescription: 'Period for Presentation in Days is mandatory',
+    customValidator: (value, payload) => {
+      const data =
+        payload?.shipmentDetailsELC?.periodForPresentationInDays?.value ??
+        payload?.shipmentDetailsELC?.periodForPresentationInDays;
+
+      if (Number.isNaN(Number(data))) {
+        return 'Period for Presentation in Days value has invalid Character';
+      }
+
+      if (Number(data) < 0 || Number(data) > 999) {
+        return 'Period for Presentation in Days must not have more than 3 characters';
+      }
+
+      if (!Number.isInteger(Number(data))) {
+        return 'Period for Presentation in Days value has invalid Character';
+      }
+
+      return null;
+    },
+  },
+  {
+    path: 'shipmentDetailsELC.incotermYear.value',
+    section: 'Shipment Details',
+    required: true,
+    field: 'incotermYear',
+    errorDescription: 'incotermYear is mandatory',
+  },
+  {
+    path: 'shipmentDetailsELC.modeOfShipment.value',
+    section: 'Shipment Details',
+    required: true,
+    field: 'modeOfShipment',
+    errorDescription: 'modeOfShipment is mandatory',
+  },
+];
+
+
+
 Welcome to your new TanStack app! 
 
 # Getting Started
